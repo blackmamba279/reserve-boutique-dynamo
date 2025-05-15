@@ -52,7 +52,7 @@ const ProductCatalog = () => {
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">All Categories</SelectItem>
                 {categories.map(category => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
@@ -69,7 +69,7 @@ const ProductCatalog = () => {
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="available">Available</SelectItem>
                 <SelectItem value="reserved">Reserved</SelectItem>
                 <SelectItem value="sold">Sold</SelectItem>
