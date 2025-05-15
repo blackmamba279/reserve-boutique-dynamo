@@ -20,8 +20,12 @@ const SalesPage = () => {
   const { salesReport } = useApp();
   const [periodTab, setPeriodTab] = useState("weekly");
   
-  const formatCurrency = (value: number) => {
-    return `C$ ${value.toLocaleString()}`;
+  const formatCurrency = (value: number | string): string => {
+    // Convert to number if it's a string, or use as is if already a number
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    // Check if it's a valid number
+    if (isNaN(numericValue)) return 'C$ 0';
+    return `C$ ${numericValue.toLocaleString()}`;
   };
   
   // Function to get appropriate data based on selected period
@@ -114,7 +118,7 @@ const SalesPage = () => {
                 <XAxis dataKey="period" />
                 <YAxis yAxisId="left" orientation="left" />
                 <YAxis yAxisId="right" orientation="right" />
-                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Tooltip formatter={(value) => formatCurrency(value as number | string)} />
                 <Legend />
                 <Line
                   yAxisId="left"
@@ -152,7 +156,7 @@ const SalesPage = () => {
                 <XAxis dataKey="period" />
                 <YAxis />
                 <Tooltip formatter={(value, name) => {
-                  if (name === "totalSales") return formatCurrency(value);
+                  if (name === "totalSales") return formatCurrency(value as number | string);
                   return value;
                 }}/>
                 <Legend />
