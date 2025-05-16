@@ -1,49 +1,66 @@
 
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Settings, LogOut, ShoppingBag } from "lucide-react";
-import { useApp } from "@/context/AppContext";
+import { LogOut, Menu } from "lucide-react";
+import { useMobile } from "@/hooks/use-mobile";
 
 const AdminHeader = () => {
-  const navigate = useNavigate();
-  const { setIsAuthenticated } = useApp();
+  const { isMobile } = useMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { signOut, user } = useAuth();
   
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    navigate("/admin/login");
-  };
+  useEffect(() => {
+    // Close sidebar when window resizes from mobile to desktop
+    const handleResize = () => {
+      if (window.innerWidth > 768 && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [sidebarOpen]);
   
-  const handleGoToStore = () => {
-    navigate("/");
+  const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
+    
+    // Toggle body overflow to prevent scrolling when sidebar is open
+    if (isMobile) {
+      document.body.style.overflow = !sidebarOpen ? 'hidden' : '';
+    }
   };
   
   return (
-    <div className="flex items-center justify-between bg-boutique-primary text-white p-4">
-      <div className="flex items-center gap-2">
-        <Settings className="h-6 w-6" />
-        <h1 className="text-xl font-bold">Administration Panel</h1>
-      </div>
+    <header className="bg-white border-b border-gray-200 py-4 px-6 flex items-center justify-between z-20">
+      {isMobile && (
+        <button
+          onClick={toggleSidebar}
+          className="p-2 rounded-md text-gray-500 hover:bg-gray-100 focus:outline-none"
+        >
+          <Menu className="h-6 w-6" />
+          <span className="sr-only">Toggle sidebar</span>
+        </button>
+      )}
       
-      <div className="flex gap-2">
-        <Button 
-          variant="ghost" 
-          className="text-white hover:bg-boutique-dark"
-          onClick={handleGoToStore}
-        >
-          <ShoppingBag className="h-5 w-5 mr-1" />
-          View Store
-        </Button>
-        
-        <Button 
-          variant="ghost" 
-          className="text-white hover:bg-boutique-dark"
-          onClick={handleLogout}
-        >
-          <LogOut className="h-5 w-5 mr-1" />
-          Logout
-        </Button>
+      <div className="flex items-center space-x-4 ml-auto">
+        {user && (
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-gray-700">
+              {user.email}
+            </span>
+            <Button variant="outline" size="sm" onClick={signOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign out
+            </Button>
+          </div>
+        )}
       </div>
-    </div>
+    </header>
   );
 };
 

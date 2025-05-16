@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label";
 const ProductCatalog = () => {
   const { products, categories } = useApp();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
   
   const filteredProducts = products.filter(product => {
     // Filter by search term
@@ -21,10 +21,10 @@ const ProductCatalog = () => {
       product.description.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Filter by category
-    const matchesCategory = selectedCategory === "" || product.categoryId === selectedCategory;
+    const matchesCategory = selectedCategory === "all" || product.categoryId === selectedCategory;
     
     // Filter by status
-    const matchesStatus = selectedStatus === "" || product.status === selectedStatus;
+    const matchesStatus = selectedStatus === "all" || product.status === selectedStatus;
     
     return matchesSearch && matchesCategory && matchesStatus;
   });

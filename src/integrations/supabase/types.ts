@@ -82,6 +82,51 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          full_name: string | null
+          id: string
+          username: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id: string
+          username?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string | null
+          full_name?: string | null
+          id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      site_info: {
+        Row: {
+          company_name: string
+          id: number
+          logo_url: string
+          whatsapp_number: string
+        }
+        Insert: {
+          company_name: string
+          id?: number
+          logo_url: string
+          whatsapp_number: string
+        }
+        Update: {
+          company_name?: string
+          id?: number
+          logo_url?: string
+          whatsapp_number?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           created_at: string | null
