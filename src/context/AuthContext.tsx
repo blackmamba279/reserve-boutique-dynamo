@@ -9,6 +9,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
+  isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -20,8 +21,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
+      
+      if (error) {
+        console.error("Error fetching user role:", error);
+        return;
+      }
+      
+      setIsAdmin(data?.role === "administrator");
+    } catch (error) {
+      console.error("Error in fetchUserRole:", error);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener first
@@ -31,15 +52,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(newSession?.user ?? null);
         setIsLoading(false);
         
-        if (event === "SIGNED_IN") {
+        if (event === "SIGNED_IN" && newSession?.user) {
           // Use setTimeout to avoid potential auth state deadlocks
           setTimeout(() => {
-            navigate("/admin");
+            fetchUserRole(newSession.user.id);
+          }, 0);
+
+          setTimeout(() => {
+            navigate("/");
           }, 0);
         } else if (event === "SIGNED_OUT") {
+          setIsAdmin(false);
           // Use setTimeout to avoid potential auth state deadlocks
           setTimeout(() => {
-            navigate("/admin/login");
+            navigate("/");
           }, 0);
         }
       }
@@ -49,6 +75,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
+      
+      if (currentSession?.user) {
+        fetchUserRole(currentSession.user.id);
+      }
+      
       setIsLoading(false);
     });
 
@@ -125,6 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     user,
     session,
     isLoading,
+    isAdmin,
     signIn,
     signUp,
     signOut,

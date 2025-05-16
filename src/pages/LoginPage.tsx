@@ -16,14 +16,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Logo from "@/components/Logo";
 
 const LoginPage = () => {
-  const { user, isLoading, signIn, signUp } = useAuth();
+  const { user, isLoading, isAdmin, signIn, signUp } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already logged in
   if (user && !isLoading) {
-    return <Navigate to="/admin" replace />;
+    // Only redirect to admin if the user is an admin
+    if (isAdmin) {
+      return <Navigate to="/admin" replace />;
+    }
+    return <Navigate to="/" replace />;
   }
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -51,6 +55,9 @@ const LoginPage = () => {
           <CardDescription>
             Login to access your admin dashboard
           </CardDescription>
+          <p className="text-xs text-amber-600">
+            Note: Only users with administrator role can access the admin panel
+          </p>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">

@@ -4,16 +4,20 @@ import { useNavigate, Outlet } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import AdminHeader from "@/components/admin/AdminHeader";
 import AdminSidebar from "@/components/admin/Sidebar";
+import { toast } from "@/components/ui/sonner";
 
 const AdminLayout = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isAdmin, isLoading } = useAuth();
   const navigate = useNavigate();
   
   useEffect(() => {
     if (!isLoading && !user) {
       navigate("/admin/login");
+    } else if (!isLoading && user && !isAdmin) {
+      toast.error("You do not have administrator privileges");
+      navigate("/");
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isAdmin, isLoading, navigate]);
   
   if (isLoading) {
     return (
@@ -26,7 +30,7 @@ const AdminLayout = () => {
     );
   }
   
-  if (!user) {
+  if (!user || !isAdmin) {
     return null;
   }
   
