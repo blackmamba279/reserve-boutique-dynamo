@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Product, Category, Reservation, Settings, CustomerReport, SalesReport } from "../models/types";
 import { products as initialProducts, categories as initialCategories, reservations as initialReservations, defaultSettings, salesReportData, customerReportData, generateReference } from "../data/initialData";
@@ -98,7 +97,18 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     if (error) throw error;
     if (data && data.length > 0) {
-      setProducts(data);
+      const mappedProducts: Product[] = data.map(item => ({
+        id: item.id,
+        reference: item.reference,
+        name: item.name,
+        price: Number(item.price),
+        description: item.description,
+        images: item.images,
+        categoryId: item.category_id,
+        status: item.status as 'available' | 'reserved' | 'sold',
+        createdAt: item.created_at
+      }));
+      setProducts(mappedProducts);
     }
   };
   
@@ -109,7 +119,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     if (error) throw error;
     if (data && data.length > 0) {
-      setCategories(data);
+      const mappedCategories: Category[] = data.map(item => ({
+        id: item.id,
+        name: item.name,
+        code: item.code
+      }));
+      setCategories(mappedCategories);
     }
   };
   
@@ -120,7 +135,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     if (error) throw error;
     if (data && data.length > 0) {
-      setReservations(data);
+      const mappedReservations: Reservation[] = data.map(item => ({
+        id: item.id,
+        productId: item.product_id,
+        customerName: item.customer_name,
+        customerPhone: item.customer_phone,
+        status: item.status as 'pending' | 'completed' | 'cancelled',
+        reservationDate: item.reservation_date
+      }));
+      setReservations(mappedReservations);
     }
   };
   
@@ -132,7 +155,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     if (error && error.code !== 'PGRST116') throw error; // PGRST116 means no rows returned
     if (data) {
-      setSettings(data);
+      const mappedSettings: Settings = {
+        storeName: data.store_name,
+        logoUrl: data.logo_url,
+        slogan: data.slogan,
+        whatsappNumber: data.whatsapp_number,
+        exchangeRate: Number(data.exchange_rate)
+      };
+      setSettings(mappedSettings);
     }
   };
 
@@ -171,10 +201,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     if (user) {
       try {
-        // Store in Supabase
+        // Store in Supabase - map to the database schema
         const { error } = await supabase
           .from('products')
-          .insert(newProduct);
+          .insert({
+            id: newProduct.id,
+            reference: newProduct.reference,
+            name: newProduct.name,
+            price: newProduct.price,
+            description: newProduct.description,
+            images: newProduct.images,
+            category_id: newProduct.categoryId,
+            status: newProduct.status,
+            created_at: newProduct.createdAt
+          });
         
         if (error) throw error;
         toast.success("Product added successfully to database");
@@ -192,10 +232,19 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const updateProduct = async (productId: string, data: Partial<Product>) => {
     if (user) {
       try {
+        // Map the data to match database schema
+        const dbData: any = {};
+        if (data.name) dbData.name = data.name;
+        if (data.price !== undefined) dbData.price = data.price;
+        if (data.description) dbData.description = data.description;
+        if (data.images) dbData.images = data.images;
+        if (data.categoryId) dbData.category_id = data.categoryId;
+        if (data.status) dbData.status = data.status;
+        
         // Update in Supabase
         const { error } = await supabase
           .from('products')
-          .update(data)
+          .update(dbData)
           .eq('id', productId);
         
         if (error) throw error;
@@ -257,7 +306,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         // Store in Supabase
         const { error } = await supabase
           .from('categories')
-          .insert(newCategory);
+          .insert({
+            id: newCategory.id,
+            name: newCategory.name,
+            code: newCategory.code
+          });
         
         if (error) throw error;
         toast.success("Category added successfully to database");
@@ -278,7 +331,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         // Update in Supabase
         const { error } = await supabase
           .from('categories')
-          .update(data)
+          .update({
+            name: data.name,
+            code: data.code
+          })
           .eq('id', categoryId);
         
         if (error) throw error;
@@ -358,7 +414,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         // Store in Supabase
         const { error } = await supabase
           .from('reservations')
-          .insert(newReservation);
+          .insert({
+            id: newReservation.id,
+            product_id: newReservation.productId,
+            customer_name: newReservation.customerName,
+            customer_phone: newReservation.customerPhone,
+            status: newReservation.status,
+            reservation_date: newReservation.reservationDate
+          });
         
         if (error) throw error;
         toast.success("Reservation added successfully to database");
@@ -466,6 +529,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const updateSettings = async (data: Partial<Settings>) => {
     if (user) {
       try {
+        // Prepare data for Supabase (convert to snake_case)
+        const settingsData = {
+          store_name: data.storeName || settings.storeName,
+          logo_url: data.logoUrl || settings.logoUrl,
+          slogan: data.slogan || settings.slogan,
+          whatsapp_number: data.whatsappNumber || settings.whatsappNumber,
+          exchange_rate: data.exchangeRate || settings.exchangeRate
+        };
+        
         // Check if settings exist in Supabase
         const { data: existingSettings, error: fetchError } = await supabase
           .from('settings')
@@ -477,7 +549,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           // Update existing settings
           const { error } = await supabase
             .from('settings')
-            .update({ ...settings, ...data })
+            .update(settingsData)
             .eq('id', existingSettings[0].id);
           
           if (error) throw error;
@@ -485,7 +557,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           // Insert new settings
           const { error } = await supabase
             .from('settings')
-            .insert({ ...settings, ...data });
+            .insert(settingsData);
           
           if (error) throw error;
         }

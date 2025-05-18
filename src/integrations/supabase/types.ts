@@ -9,6 +9,24 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      categories: {
+        Row: {
+          code: string
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       debts: {
         Row: {
           amount: number
@@ -82,6 +100,42 @@ export type Database = {
           },
         ]
       }
+      products: {
+        Row: {
+          category_id: string
+          created_at: string
+          description: string
+          id: string
+          images: string[]
+          name: string
+          price: number
+          reference: string
+          status: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          description: string
+          id?: string
+          images?: string[]
+          name: string
+          price: number
+          reference: string
+          status: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          images?: string[]
+          name?: string
+          price?: number
+          reference?: string
+          status?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -106,6 +160,68 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
           username?: string | null
+        }
+        Relationships: []
+      }
+      reservations: {
+        Row: {
+          customer_name: string
+          customer_phone: string
+          id: string
+          product_id: string
+          reservation_date: string
+          status: string
+        }
+        Insert: {
+          customer_name: string
+          customer_phone: string
+          id?: string
+          product_id: string
+          reservation_date?: string
+          status: string
+        }
+        Update: {
+          customer_name?: string
+          customer_phone?: string
+          id?: string
+          product_id?: string
+          reservation_date?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      settings: {
+        Row: {
+          exchange_rate: number
+          id: string
+          logo_url: string
+          slogan: string
+          store_name: string
+          whatsapp_number: string
+        }
+        Insert: {
+          exchange_rate: number
+          id?: string
+          logo_url: string
+          slogan: string
+          store_name: string
+          whatsapp_number: string
+        }
+        Update: {
+          exchange_rate?: number
+          id?: string
+          logo_url?: string
+          slogan?: string
+          store_name?: string
+          whatsapp_number?: string
         }
         Relationships: []
       }
