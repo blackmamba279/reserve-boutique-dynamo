@@ -9,7 +9,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
-import { SupportedLanguage } from "@/translations";
+import { SupportedLanguage } from "@/translations/types";
 
 const languageNames: Record<SupportedLanguage, string> = {
   en: "English",
@@ -20,7 +20,7 @@ const languageNames: Record<SupportedLanguage, string> = {
 };
 
 const LanguageSwitcher = () => {
-  const { language, setLanguage, t } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   
   const handleLanguageChange = (newLanguage: SupportedLanguage) => {

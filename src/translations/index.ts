@@ -1,41 +1,10 @@
 
-import { SupportedLanguage } from "@/context/LanguageContext";
+import { SupportedLanguage, TranslationKeys } from './types';
 
-export type { SupportedLanguage };
+export { SupportedLanguage, TranslationKeys };
 
-export type TranslationKeys = {
-  header: {
-    storeDate: string;
-    adminLogin: string;
-  };
-  product: {
-    available: string;
-    reserved: string;
-    sold: string;
-    reference: string;
-    price: string;
-    status: string;
-    category: string;
-    addToCart: string;
-    viewDetails: string;
-    notAvailable: string;
-  };
-  catalog: {
-    searchProducts: string;
-    searchPlaceholder: string;
-    category: string;
-    status: string;
-    allCategories: string;
-    allStatus: string;
-    noProducts: string;
-  };
-  admin: {
-    signOut: string;
-    backToCatalog: string;
-  };
-};
-
-const translations: Record<SupportedLanguage, TranslationKeys> = {
+// Define translations for all supported languages
+export const translations: Record<SupportedLanguage, TranslationKeys> = {
   en: {
     header: {
       storeDate: "Today is",
@@ -192,5 +161,3 @@ const translations: Record<SupportedLanguage, TranslationKeys> = {
     },
   },
 };
-
-export default translations;

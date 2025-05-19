@@ -1,6 +1,7 @@
 
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { translations, SupportedLanguage } from '../translations';
+import { translations } from '../translations';
+import { SupportedLanguage } from '../translations/types';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from './AuthContext';
 import { toast } from "@/components/ui/sonner";
