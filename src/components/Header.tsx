@@ -12,7 +12,7 @@ const Header = () => {
   const { t, language } = useLanguage();
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   
-  // Update date every day
+  // Update date every minute
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentDateTime(new Date());

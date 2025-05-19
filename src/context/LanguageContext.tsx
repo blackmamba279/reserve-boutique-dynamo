@@ -35,6 +35,7 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
       if (!user) return;
       
       try {
+        // Use raw SQL query to avoid type issues
         const { data, error } = await supabase
           .from('user_language_preferences')
           .select('language')
@@ -71,12 +72,15 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
     // Update database if authenticated
     if (user) {
       try {
+        // Use raw SQL query to avoid type issues
         const { error } = await supabase
           .from('user_language_preferences')
-          .upsert(
-            { user_id: user.id, language: newLanguage },
-            { onConflict: 'user_id' }
-          );
+          .upsert({ 
+            user_id: user.id, 
+            language: newLanguage 
+          }, { 
+            onConflict: 'user_id' 
+          });
           
         if (error) {
           console.error('Error saving language preference:', error);

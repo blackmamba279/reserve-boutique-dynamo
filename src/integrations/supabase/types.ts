@@ -246,6 +246,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_language_preferences: {
+        Row: {
+          id: string
+          language: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          language: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          language?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           created_at: string | null

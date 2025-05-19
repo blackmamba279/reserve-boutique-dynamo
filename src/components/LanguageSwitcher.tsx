@@ -37,7 +37,8 @@ const LanguageSwitcher = () => {
           className="flex items-center space-x-1 text-boutique-dark hover:bg-boutique-accent/20"
         >
           <Globe size={16} />
-          <span className="font-medium">{language.toUpperCase()}</span>
+          <span className="font-medium hidden sm:inline">{languageNames[language]}</span>
+          <span className="font-medium sm:hidden">{language.toUpperCase()}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-36">
