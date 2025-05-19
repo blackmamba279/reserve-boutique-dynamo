@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import Logo from "./Logo";
 import { useApp } from "@/context/AppContext";
-import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "@/context/LanguageContext";
@@ -10,7 +9,7 @@ import LanguageSwitcher from "./LanguageSwitcher";
 
 const Header = () => {
   const { settings } = useApp();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   
   // Update date every day
@@ -22,7 +21,18 @@ const Header = () => {
     return () => clearInterval(timer);
   }, []);
   
-  const formattedDate = new Intl.DateTimeFormat('en-US', {
+  // Get locale based on current language
+  const getLocale = () => {
+    switch(language) {
+      case 'es': return 'es-ES';
+      case 'fr': return 'fr-FR';
+      case 'de': return 'de-DE';
+      case 'it': return 'it-IT';
+      default: return 'en-US';
+    }
+  };
+  
+  const formattedDate = new Intl.DateTimeFormat(getLocale(), {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
