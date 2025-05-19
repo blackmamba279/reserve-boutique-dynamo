@@ -1,7 +1,8 @@
 
 import { SupportedLanguage, TranslationKeys } from './types';
 
-export { SupportedLanguage, TranslationKeys };
+// Use 'export type' for re-exporting types when isolatedModules is enabled
+export type { SupportedLanguage, TranslationKeys };
 
 // Define translations for all supported languages
 export const translations: Record<SupportedLanguage, TranslationKeys> = {
