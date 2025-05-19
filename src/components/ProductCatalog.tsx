@@ -5,9 +5,11 @@ import ProductCard from "./ProductCard";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { useLanguage } from "@/context/LanguageContext";
 
 const ProductCatalog = () => {
   const { products, categories } = useApp();
+  const { t } = useLanguage();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -34,11 +36,11 @@ const ProductCatalog = () => {
       <div className="bg-white p-4 rounded-lg shadow mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <Label htmlFor="search">Search Products</Label>
+            <Label htmlFor="search">{t('catalog.searchProducts')}</Label>
             <Input
               id="search"
               type="text"
-              placeholder="Search by name or reference..."
+              placeholder={t('catalog.searchPlaceholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full"
@@ -46,13 +48,13 @@ const ProductCatalog = () => {
           </div>
           
           <div>
-            <Label htmlFor="category">Category</Label>
+            <Label htmlFor="category">{t('catalog.category')}</Label>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger id="category">
-                <SelectValue placeholder="All Categories" />
+                <SelectValue placeholder={t('catalog.allCategories')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
+                <SelectItem value="all">{t('catalog.allCategories')}</SelectItem>
                 {categories.map(category => (
                   <SelectItem key={category.id} value={category.id}>
                     {category.name}
@@ -63,16 +65,16 @@ const ProductCatalog = () => {
           </div>
           
           <div>
-            <Label htmlFor="status">Status</Label>
+            <Label htmlFor="status">{t('catalog.status')}</Label>
             <Select value={selectedStatus} onValueChange={setSelectedStatus}>
               <SelectTrigger id="status">
-                <SelectValue placeholder="All Status" />
+                <SelectValue placeholder={t('catalog.allStatus')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="available">Available</SelectItem>
-                <SelectItem value="reserved">Reserved</SelectItem>
-                <SelectItem value="sold">Sold</SelectItem>
+                <SelectItem value="all">{t('catalog.allStatus')}</SelectItem>
+                <SelectItem value="available">{t('product.available')}</SelectItem>
+                <SelectItem value="reserved">{t('product.reserved')}</SelectItem>
+                <SelectItem value="sold">{t('product.sold')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -81,7 +83,7 @@ const ProductCatalog = () => {
       
       {filteredProducts.length === 0 ? (
         <div className="text-center py-12">
-          <h3 className="text-xl text-gray-500">No products found</h3>
+          <h3 className="text-xl text-gray-500">{t('catalog.noProducts')}</h3>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">

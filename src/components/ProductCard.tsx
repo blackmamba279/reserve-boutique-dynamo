@@ -5,6 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { toast } from "@/components/ui/sonner";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface ProductCardProps {
   product: Product;
@@ -12,6 +13,7 @@ interface ProductCardProps {
 
 const ProductCard = ({ product }: ProductCardProps) => {
   const { settings, reserveProduct } = useApp();
+  const { t } = useLanguage();
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [showReservationForm, setShowReservationForm] = useState(false);
@@ -24,22 +26,23 @@ const ProductCard = ({ product }: ProductCardProps) => {
   
   const handleSubmitReservation = () => {
     if (!customerName || !customerPhone) {
-      toast.error("Please provide your name and phone number");
+      toast.error(t('product.nameRequired'));
       return;
     }
     
     reserveProduct(product.id, customerName, customerPhone);
     setShowReservationForm(false);
     
-    // Construct WhatsApp message
+    // Construct WhatsApp message with language support
+    const messageTemplate = t('whatsapp.reservationMessage');
     const message = encodeURIComponent(
-      `Hello! I'm interested in reserving this product:\n\n` +
-      `Reference: ${product.reference}\n` +
-      `Name: ${product.name}\n` +
-      `Price: C$ ${product.price} ($ ${dollarPrice})\n\n` +
-      `My name: ${customerName}\n` +
-      `My phone: ${customerPhone}\n\n` +
-      `Please confirm this reservation. Thank you!`
+      messageTemplate
+        .replace('{reference}', product.reference)
+        .replace('{name}', product.name)
+        .replace('{price}', product.price.toString())
+        .replace('{dollarPrice}', dollarPrice)
+        .replace('{customerName}', customerName)
+        .replace('{customerPhone}', customerPhone)
     );
     
     // Open WhatsApp with pre-filled message
@@ -48,14 +51,14 @@ const ProductCard = ({ product }: ProductCardProps) => {
   
   const renderStatusRibbon = () => {
     let bgColor = "bg-green-500";
-    let text = "Available";
+    let text = t('product.available');
     
     if (product.status === "reserved") {
       bgColor = "bg-yellow-500";
-      text = "Reserved";
+      text = t('product.reserved');
     } else if (product.status === "sold") {
       bgColor = "bg-red-500";
-      text = "Sold";
+      text = t('product.sold');
     }
     
     return (
@@ -91,7 +94,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
       </div>
       
       <div className="p-4">
-        <p className="text-sm text-gray-500 mb-1">Ref: {product.reference}</p>
+        <p className="text-sm text-gray-500 mb-1">{t('product.reference')}: {product.reference}</p>
         <h3 className="text-xl font-serif font-semibold text-boutique-dark mb-2">
           {product.name}
         </h3>
@@ -109,20 +112,20 @@ const ProductCard = ({ product }: ProductCardProps) => {
               onClick={handleReserveClick}
               className="w-full bg-boutique-primary hover:bg-boutique-dark"
             >
-              Reserve Now
+              {t('product.reserveNow')}
             </Button>
           ) : (
             <div className="space-y-3 animate-fade-in">
               <input
                 type="text"
-                placeholder="Your Name"
+                placeholder={t('product.yourName')}
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
                 className="w-full p-2 border rounded-md"
               />
               <input
                 type="text"
-                placeholder="Your Phone Number"
+                placeholder={t('product.yourPhone')}
                 value={customerPhone}
                 onChange={(e) => setCustomerPhone(e.target.value)}
                 className="w-full p-2 border rounded-md"
@@ -133,20 +136,20 @@ const ProductCard = ({ product }: ProductCardProps) => {
                   variant="outline" 
                   className="flex-1"
                 >
-                  Cancel
+                  {t('product.cancel')}
                 </Button>
                 <Button 
                   onClick={handleSubmitReservation}
                   className="flex-1 bg-boutique-primary hover:bg-boutique-dark"
                 >
-                  Confirm
+                  {t('product.confirm')}
                 </Button>
               </div>
             </div>
           )
         ) : (
           <Button disabled className="w-full bg-gray-300 cursor-not-allowed">
-            {product.status === "reserved" ? "Reserved" : "Sold"}
+            {product.status === "reserved" ? t('product.reserved') : t('product.sold')}
           </Button>
         )}
       </div>
