@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Product, Category, Reservation, Settings, CustomerReport, SalesReport } from "../models/types";
 import { products as initialProducts, categories as initialCategories, reservations as initialReservations, defaultSettings, salesReportData, customerReportData, generateReference } from "../data/initialData";
@@ -41,33 +42,36 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [salesReport] = useState<SalesReport>(salesReportData);
   const [customerReport] = useState<CustomerReport>(customerReportData);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const { user, session } = useAuth();
   
-  // Initial data load from Supabase when authenticated
+  // Initial data load from Supabase when component mounts
   useEffect(() => {
     const loadData = async () => {
-      if (user) {
-        try {
-          await fetchProductsFromSupabase();
-          await fetchCategoriesFromSupabase();
-          await fetchReservationsFromSupabase();
-          await fetchSettingsFromSupabase();
-        } catch (error) {
-          console.error("Error loading data from Supabase:", error);
-          // Fall back to localStorage if Supabase fails
-          loadDataFromLocalStorage();
-        }
-      } else {
-        // If not authenticated, load from localStorage as fallback
+      setLoading(true);
+      try {
+        await Promise.all([
+          fetchProductsFromSupabase(),
+          fetchCategoriesFromSupabase(),
+          fetchReservationsFromSupabase(),
+          fetchSettingsFromSupabase()
+        ]);
+        console.log("Data loaded from Supabase successfully");
+      } catch (error) {
+        console.error("Error loading data from Supabase:", error);
+        toast.error("Failed to load data from server, using local data");
+        // Fall back to localStorage if Supabase fails
         loadDataFromLocalStorage();
+      } finally {
+        setLoading(false);
       }
     };
     
     loadData();
-  }, [user]);
+  }, [user]); // Re-fetch when user authentication changes
   
   const loadDataFromLocalStorage = () => {
-    // Load from local storage on initial load
+    // Load from local storage as fallback
     const storedProducts = localStorage.getItem("products");
     if (storedProducts) {
       setProducts(JSON.parse(storedProducts));
@@ -95,7 +99,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       .from('products')
       .select('*');
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching products:", error);
+      throw error;
+    }
+    
     if (data && data.length > 0) {
       const mappedProducts: Product[] = data.map(item => ({
         id: item.id,
@@ -108,7 +116,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         status: item.status as 'available' | 'reserved' | 'sold',
         createdAt: item.created_at
       }));
+      
+      console.log(`Fetched ${mappedProducts.length} products from Supabase`);
       setProducts(mappedProducts);
+    } else {
+      console.log("No products found in Supabase, using initial data");
     }
   };
   
@@ -117,14 +129,22 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       .from('categories')
       .select('*');
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching categories:", error);
+      throw error;
+    }
+    
     if (data && data.length > 0) {
       const mappedCategories: Category[] = data.map(item => ({
         id: item.id,
         name: item.name,
         code: item.code
       }));
+      
+      console.log(`Fetched ${mappedCategories.length} categories from Supabase`);
       setCategories(mappedCategories);
+    } else {
+      console.log("No categories found in Supabase, using initial data");
     }
   };
   
@@ -133,7 +153,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       .from('reservations')
       .select('*');
     
-    if (error) throw error;
+    if (error) {
+      console.error("Error fetching reservations:", error);
+      throw error;
+    }
+    
     if (data && data.length > 0) {
       const mappedReservations: Reservation[] = data.map(item => ({
         id: item.id,
@@ -143,26 +167,56 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         status: item.status as 'pending' | 'completed' | 'cancelled',
         reservationDate: item.reservation_date
       }));
+      
+      console.log(`Fetched ${mappedReservations.length} reservations from Supabase`);
       setReservations(mappedReservations);
+    } else {
+      console.log("No reservations found in Supabase, using initial data");
     }
   };
   
   const fetchSettingsFromSupabase = async () => {
     const { data, error } = await supabase
       .from('settings')
-      .select('*')
-      .single();
+      .select('*');
     
-    if (error && error.code !== 'PGRST116') throw error; // PGRST116 means no rows returned
-    if (data) {
+    if (error && error.code !== 'PGRST116') {
+      console.error("Error fetching settings:", error);
+      throw error;
+    }
+    
+    if (data && data.length > 0) {
+      const item = data[0];
       const mappedSettings: Settings = {
-        storeName: data.store_name,
-        logoUrl: data.logo_url,
-        slogan: data.slogan,
-        whatsappNumber: data.whatsapp_number,
-        exchangeRate: Number(data.exchange_rate)
+        storeName: item.store_name,
+        logoUrl: item.logo_url,
+        slogan: item.slogan,
+        whatsappNumber: item.whatsapp_number,
+        exchangeRate: Number(item.exchange_rate)
       };
+      
+      console.log("Fetched settings from Supabase");
       setSettings(mappedSettings);
+    } else {
+      console.log("No settings found in Supabase, using default settings");
+      // Add default settings to Supabase if none exist
+      if (user) {
+        const { error } = await supabase
+          .from('settings')
+          .insert({
+            store_name: defaultSettings.storeName,
+            logo_url: defaultSettings.logoUrl,
+            slogan: defaultSettings.slogan,
+            whatsapp_number: defaultSettings.whatsappNumber,
+            exchange_rate: defaultSettings.exchangeRate
+          });
+        
+        if (error) {
+          console.error("Error creating default settings:", error);
+        } else {
+          console.log("Created default settings in Supabase");
+        }
+      }
     }
   };
 
@@ -194,74 +248,77 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const reference = generateReference(category.code);
     const newProduct: Product = {
       ...product,
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       reference,
       createdAt: new Date().toISOString()
     };
     
-    if (user) {
-      try {
-        // Store in Supabase - map to the database schema
-        const { error } = await supabase
-          .from('products')
-          .insert({
-            id: newProduct.id,
-            reference: newProduct.reference,
-            name: newProduct.name,
-            price: newProduct.price,
-            description: newProduct.description,
-            images: newProduct.images,
-            category_id: newProduct.categoryId,
-            status: newProduct.status,
-            created_at: newProduct.createdAt
-          });
-        
-        if (error) throw error;
-        toast.success("Product added successfully to database");
-      } catch (error) {
+    try {
+      // Store in Supabase - map to the database schema
+      const { data, error } = await supabase
+        .from('products')
+        .insert({
+          id: newProduct.id,
+          reference: newProduct.reference,
+          name: newProduct.name,
+          price: newProduct.price,
+          description: newProduct.description,
+          images: newProduct.images,
+          category_id: newProduct.categoryId,
+          status: newProduct.status,
+          created_at: newProduct.createdAt
+        })
+        .select();
+      
+      if (error) {
         console.error("Error adding product to Supabase:", error);
         toast.error("Failed to save product to database");
+        throw error;
       }
+      
+      // Update local state
+      setProducts(current => [...current, newProduct]);
+      toast.success("Product added successfully");
+    } catch (error) {
+      console.error("Error in addProduct:", error);
+      toast.error("Failed to add product");
     }
-    
-    // Update local state
-    setProducts(current => [...current, newProduct]);
-    toast.success("Product added successfully");
   };
 
   const updateProduct = async (productId: string, data: Partial<Product>) => {
-    if (user) {
-      try {
-        // Map the data to match database schema
-        const dbData: any = {};
-        if (data.name) dbData.name = data.name;
-        if (data.price !== undefined) dbData.price = data.price;
-        if (data.description) dbData.description = data.description;
-        if (data.images) dbData.images = data.images;
-        if (data.categoryId) dbData.category_id = data.categoryId;
-        if (data.status) dbData.status = data.status;
-        
-        // Update in Supabase
-        const { error } = await supabase
-          .from('products')
-          .update(dbData)
-          .eq('id', productId);
-        
-        if (error) throw error;
-        toast.success("Product updated successfully in database");
-      } catch (error) {
+    try {
+      // Map the data to match database schema
+      const dbData: any = {};
+      if (data.name) dbData.name = data.name;
+      if (data.price !== undefined) dbData.price = data.price;
+      if (data.description) dbData.description = data.description;
+      if (data.images) dbData.images = data.images;
+      if (data.categoryId) dbData.category_id = data.categoryId;
+      if (data.status) dbData.status = data.status;
+      
+      // Update in Supabase
+      const { error } = await supabase
+        .from('products')
+        .update(dbData)
+        .eq('id', productId);
+      
+      if (error) {
         console.error("Error updating product in Supabase:", error);
         toast.error("Failed to update product in database");
+        throw error;
       }
+      
+      // Update local state
+      setProducts(current =>
+        current.map(product => 
+          product.id === productId ? { ...product, ...data } : product
+        )
+      );
+      toast.success("Product updated successfully");
+    } catch (error) {
+      console.error("Error in updateProduct:", error);
+      toast.error("Failed to update product");
     }
-    
-    // Update local state
-    setProducts(current =>
-      current.map(product => 
-        product.id === productId ? { ...product, ...data } : product
-      )
-    );
-    toast.success("Product updated successfully");
   };
 
   const deleteProduct = async (productId: string) => {
@@ -273,85 +330,88 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    if (user) {
-      try {
-        // Delete from Supabase
-        const { error } = await supabase
-          .from('products')
-          .delete()
-          .eq('id', productId);
-        
-        if (error) throw error;
-        toast.success("Product deleted successfully from database");
-      } catch (error) {
+    try {
+      // Delete from Supabase
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+      
+      if (error) {
         console.error("Error deleting product from Supabase:", error);
         toast.error("Failed to delete product from database");
+        throw error;
       }
+      
+      // Update local state
+      setProducts(current => current.filter(p => p.id !== productId));
+      toast.success("Product deleted successfully");
+    } catch (error) {
+      console.error("Error in deleteProduct:", error);
+      toast.error("Failed to delete product");
     }
-    
-    // Update local state
-    setProducts(current => current.filter(p => p.id !== productId));
-    toast.success("Product deleted successfully");
   };
 
   // Category operations
   const addCategory = async (category: Omit<Category, "id">) => {
     const newCategory: Category = {
       ...category,
-      id: Date.now().toString()
+      id: crypto.randomUUID()
     };
     
-    if (user) {
-      try {
-        // Store in Supabase
-        const { error } = await supabase
-          .from('categories')
-          .insert({
-            id: newCategory.id,
-            name: newCategory.name,
-            code: newCategory.code
-          });
-        
-        if (error) throw error;
-        toast.success("Category added successfully to database");
-      } catch (error) {
+    try {
+      // Store in Supabase
+      const { error } = await supabase
+        .from('categories')
+        .insert({
+          id: newCategory.id,
+          name: newCategory.name,
+          code: newCategory.code
+        });
+      
+      if (error) {
         console.error("Error adding category to Supabase:", error);
         toast.error("Failed to save category to database");
+        throw error;
       }
+      
+      // Update local state
+      setCategories(current => [...current, newCategory]);
+      toast.success("Category added successfully");
+    } catch (error) {
+      console.error("Error in addCategory:", error);
+      toast.error("Failed to add category");
     }
-    
-    // Update local state
-    setCategories(current => [...current, newCategory]);
-    toast.success("Category added successfully");
   };
 
   const updateCategory = async (categoryId: string, data: Partial<Category>) => {
-    if (user) {
-      try {
-        // Update in Supabase
-        const { error } = await supabase
-          .from('categories')
-          .update({
-            name: data.name,
-            code: data.code
-          })
-          .eq('id', categoryId);
-        
-        if (error) throw error;
-        toast.success("Category updated successfully in database");
-      } catch (error) {
+    try {
+      // Update in Supabase
+      const { error } = await supabase
+        .from('categories')
+        .update({
+          name: data.name,
+          code: data.code
+        })
+        .eq('id', categoryId);
+      
+      if (error) {
         console.error("Error updating category in Supabase:", error);
         toast.error("Failed to update category in database");
+        throw error;
       }
+      
+      // Update local state
+      setCategories(current =>
+        current.map(category => 
+          category.id === categoryId ? { ...category, ...data } : category
+        )
+      );
+      toast.success("Category updated successfully");
+    } catch (error) {
+      console.error("Error in updateCategory:", error);
+      toast.error("Failed to update category");
     }
-    
-    // Update local state
-    setCategories(current =>
-      current.map(category => 
-        category.id === categoryId ? { ...category, ...data } : category
-      )
-    );
-    toast.success("Category updated successfully");
   };
 
   const deleteCategory = async (categoryId: string) => {
@@ -363,25 +423,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    if (user) {
-      try {
-        // Delete from Supabase
-        const { error } = await supabase
-          .from('categories')
-          .delete()
-          .eq('id', categoryId);
-        
-        if (error) throw error;
-        toast.success("Category deleted successfully from database");
-      } catch (error) {
+    try {
+      // Delete from Supabase
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', categoryId);
+      
+      if (error) {
         console.error("Error deleting category from Supabase:", error);
         toast.error("Failed to delete category from database");
+        throw error;
       }
+      
+      // Update local state
+      setCategories(current => current.filter(c => c.id !== categoryId));
+      toast.success("Category deleted successfully");
+    } catch (error) {
+      console.error("Error in deleteCategory:", error);
+      toast.error("Failed to delete category");
     }
-    
-    // Update local state
-    setCategories(current => current.filter(c => c.id !== categoryId));
-    toast.success("Category deleted successfully");
   };
 
   // Reservation operations
@@ -401,7 +462,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     // Create reservation
     const newReservation: Reservation = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       productId,
       customerName,
       customerPhone,
@@ -409,38 +470,52 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       reservationDate: new Date().toISOString()
     };
     
-    if (user) {
-      try {
-        // Store in Supabase
-        const { error } = await supabase
-          .from('reservations')
-          .insert({
-            id: newReservation.id,
-            product_id: newReservation.productId,
-            customer_name: newReservation.customerName,
-            customer_phone: newReservation.customerPhone,
-            status: newReservation.status,
-            reservation_date: newReservation.reservationDate
-          });
-        
-        if (error) throw error;
-        toast.success("Reservation added successfully to database");
-        
-        // Update product status in Supabase
-        await updateProduct(productId, { status: 'reserved' });
-      } catch (error) {
-        console.error("Error adding reservation to Supabase:", error);
+    try {
+      // Store reservation in Supabase
+      const { error: reservationError } = await supabase
+        .from('reservations')
+        .insert({
+          id: newReservation.id,
+          product_id: newReservation.productId,
+          customer_name: newReservation.customerName,
+          customer_phone: newReservation.customerPhone,
+          status: newReservation.status,
+          reservation_date: newReservation.reservationDate
+        });
+      
+      if (reservationError) {
+        console.error("Error adding reservation to Supabase:", reservationError);
         toast.error("Failed to save reservation to database");
+        throw reservationError;
       }
-    } else {
+      
+      // Update product status in Supabase
+      const { error: productError } = await supabase
+        .from('products')
+        .update({ status: 'reserved' })
+        .eq('id', productId);
+      
+      if (productError) {
+        console.error("Error updating product status in Supabase:", productError);
+        toast.error("Failed to update product status in database");
+        throw productError;
+      }
+      
       // Update local state for reservations
       setReservations(current => [...current, newReservation]);
       
-      // Update product status
-      updateProduct(productId, { status: 'reserved' });
+      // Update product status in local state
+      setProducts(current =>
+        current.map(p => 
+          p.id === productId ? { ...p, status: 'reserved' as const } : p
+        )
+      );
+      
+      toast.success("Product reserved successfully");
+    } catch (error) {
+      console.error("Error in reserveProduct:", error);
+      toast.error("Failed to reserve product");
     }
-    
-    toast.success("Product reserved successfully");
   };
 
   const completeReservation = async (reservationId: string) => {
@@ -451,37 +526,50 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    if (user) {
-      try {
-        // Update reservation status in Supabase
-        const { error } = await supabase
-          .from('reservations')
-          .update({ status: 'completed' })
-          .eq('id', reservationId);
-        
-        if (error) throw error;
-        
-        // Update product status in Supabase
-        await updateProduct(reservation.productId, { status: 'sold' });
-        
-        toast.success("Reservation completed successfully in database");
-      } catch (error) {
-        console.error("Error completing reservation in Supabase:", error);
+    try {
+      // Update reservation status in Supabase
+      const { error: reservationError } = await supabase
+        .from('reservations')
+        .update({ status: 'completed' })
+        .eq('id', reservationId);
+      
+      if (reservationError) {
+        console.error("Error completing reservation in Supabase:", reservationError);
         toast.error("Failed to complete reservation in database");
+        throw reservationError;
       }
+      
+      // Update product status in Supabase
+      const { error: productError } = await supabase
+        .from('products')
+        .update({ status: 'sold' })
+        .eq('id', reservation.productId);
+      
+      if (productError) {
+        console.error("Error updating product status in Supabase:", productError);
+        toast.error("Failed to update product status in database");
+        throw productError;
+      }
+      
+      // Update local state for reservations
+      setReservations(current =>
+        current.map(r => 
+          r.id === reservationId ? { ...r, status: 'completed' as const } : r
+        )
+      );
+      
+      // Update product status to sold in local state
+      setProducts(current =>
+        current.map(p => 
+          p.id === reservation.productId ? { ...p, status: 'sold' as const } : p
+        )
+      );
+      
+      toast.success("Reservation completed successfully");
+    } catch (error) {
+      console.error("Error in completeReservation:", error);
+      toast.error("Failed to complete reservation");
     }
-    
-    // Update local state
-    setReservations(current =>
-      current.map(r => 
-        r.id === reservationId ? { ...r, status: 'completed' } : r
-      )
-    );
-    
-    // Update product status to sold
-    updateProduct(reservation.productId, { status: 'sold' });
-    
-    toast.success("Reservation completed successfully");
   };
 
   const cancelReservation = async (reservationId: string) => {
@@ -492,86 +580,108 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    if (user) {
-      try {
-        // Update reservation status in Supabase
-        const { error } = await supabase
-          .from('reservations')
-          .update({ status: 'cancelled' })
-          .eq('id', reservationId);
-        
-        if (error) throw error;
-        
-        // Update product status in Supabase
-        await updateProduct(reservation.productId, { status: 'available' });
-        
-        toast.success("Reservation cancelled successfully in database");
-      } catch (error) {
-        console.error("Error cancelling reservation in Supabase:", error);
+    try {
+      // Update reservation status in Supabase
+      const { error: reservationError } = await supabase
+        .from('reservations')
+        .update({ status: 'cancelled' })
+        .eq('id', reservationId);
+      
+      if (reservationError) {
+        console.error("Error cancelling reservation in Supabase:", reservationError);
         toast.error("Failed to cancel reservation in database");
+        throw reservationError;
       }
+      
+      // Update product status in Supabase
+      const { error: productError } = await supabase
+        .from('products')
+        .update({ status: 'available' })
+        .eq('id', reservation.productId);
+      
+      if (productError) {
+        console.error("Error updating product status in Supabase:", productError);
+        toast.error("Failed to update product status in database");
+        throw productError;
+      }
+      
+      // Update local state for reservations
+      setReservations(current =>
+        current.map(r => 
+          r.id === reservationId ? { ...r, status: 'cancelled' as const } : r
+        )
+      );
+      
+      // Update product status back to available in local state
+      setProducts(current =>
+        current.map(p => 
+          p.id === reservation.productId ? { ...p, status: 'available' as const } : p
+        )
+      );
+      
+      toast.success("Reservation cancelled successfully");
+    } catch (error) {
+      console.error("Error in cancelReservation:", error);
+      toast.error("Failed to cancel reservation");
     }
-    
-    // Update local state
-    setReservations(current =>
-      current.map(r => 
-        r.id === reservationId ? { ...r, status: 'cancelled' } : r
-      )
-    );
-    
-    // Update product status back to available
-    updateProduct(reservation.productId, { status: 'available' });
-    
-    toast.success("Reservation cancelled successfully");
   };
 
   // Settings operations
   const updateSettings = async (data: Partial<Settings>) => {
-    if (user) {
-      try {
-        // Prepare data for Supabase (convert to snake_case)
-        const settingsData = {
-          store_name: data.storeName || settings.storeName,
-          logo_url: data.logoUrl || settings.logoUrl,
-          slogan: data.slogan || settings.slogan,
-          whatsapp_number: data.whatsappNumber || settings.whatsappNumber,
-          exchange_rate: data.exchangeRate || settings.exchangeRate
-        };
-        
-        // Check if settings exist in Supabase
-        const { data: existingSettings, error: fetchError } = await supabase
-          .from('settings')
-          .select('*');
-        
-        if (fetchError) throw fetchError;
-        
-        if (existingSettings && existingSettings.length > 0) {
-          // Update existing settings
-          const { error } = await supabase
-            .from('settings')
-            .update(settingsData)
-            .eq('id', existingSettings[0].id);
-          
-          if (error) throw error;
-        } else {
-          // Insert new settings
-          const { error } = await supabase
-            .from('settings')
-            .insert(settingsData);
-          
-          if (error) throw error;
-        }
-        
-        toast.success("Settings updated successfully in database");
-      } catch (error) {
-        console.error("Error updating settings in Supabase:", error);
-        toast.error("Failed to update settings in database");
-      }
-    }
+    const updatedSettings = { ...settings, ...data };
     
-    // Update local state
-    setSettings(current => ({ ...current, ...data }));
-    toast.success("Settings updated successfully");
+    try {
+      // Prepare data for Supabase (convert to snake_case)
+      const settingsData = {
+        store_name: updatedSettings.storeName,
+        logo_url: updatedSettings.logoUrl,
+        slogan: updatedSettings.slogan,
+        whatsapp_number: updatedSettings.whatsappNumber,
+        exchange_rate: updatedSettings.exchangeRate
+      };
+      
+      // Check if settings exist in Supabase
+      const { data: existingSettings, error: fetchError } = await supabase
+        .from('settings')
+        .select('id');
+      
+      if (fetchError) {
+        console.error("Error fetching settings:", fetchError);
+        throw fetchError;
+      }
+      
+      if (existingSettings && existingSettings.length > 0) {
+        // Update existing settings
+        const { error } = await supabase
+          .from('settings')
+          .update(settingsData)
+          .eq('id', existingSettings[0].id);
+        
+        if (error) {
+          console.error("Error updating settings in Supabase:", error);
+          toast.error("Failed to update settings in database");
+          throw error;
+        }
+      } else {
+        // Insert new settings
+        const { error } = await supabase
+          .from('settings')
+          .insert(settingsData);
+        
+        if (error) {
+          console.error("Error creating settings in Supabase:", error);
+          toast.error("Failed to create settings in database");
+          throw error;
+        }
+      }
+      
+      // Update local state
+      setSettings(updatedSettings);
+      toast.success("Settings updated successfully");
+    } catch (error) {
+      console.error("Error in updateSettings:", error);
+      toast.error("Failed to update settings");
+    }
   };
 
   // Helper methods
