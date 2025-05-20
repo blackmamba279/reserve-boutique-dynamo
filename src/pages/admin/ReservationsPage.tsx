@@ -35,6 +35,14 @@ const ReservationsPage = () => {
   const confirmCompleteReservation = () => {
     if (selectedReservation) {
       try {
+        // Validate UUID format before attempting to complete
+        if (typeof selectedReservation.id !== 'string' || 
+            !selectedReservation.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+          console.error("Invalid UUID format:", selectedReservation.id);
+          toast.error("Invalid reservation ID format");
+          return;
+        }
+        
         completeReservation(selectedReservation.id);
         toast.success("Reservation completed successfully");
       } catch (error) {
@@ -49,7 +57,8 @@ const ReservationsPage = () => {
     if (selectedReservation) {
       try {
         // Ensure we're passing a valid UUID string
-        if (typeof selectedReservation.id !== 'string' || !selectedReservation.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        if (typeof selectedReservation.id !== 'string' || 
+            !selectedReservation.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
           console.error("Invalid UUID format:", selectedReservation.id);
           toast.error("Invalid reservation ID format");
           return;
