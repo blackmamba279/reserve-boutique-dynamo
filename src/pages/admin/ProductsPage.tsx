@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { Button } from "@/components/ui/button";
@@ -16,6 +15,7 @@ import { Plus, MoreHorizontal, PenLine, Trash2, Check } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import ProductForm from "@/components/admin/ProductForm";
 import { Product } from "@/models/types";
+import { toast } from "@/components/ui/sonner";
 
 const ProductsPage = () => {
   const { products, categories, deleteProduct, cancelReservation, getReservationByProductId } = useApp();
@@ -43,9 +43,27 @@ const ProductsPage = () => {
   };
   
   const handleCancelReservation = (product: Product) => {
-    const reservation = getReservationByProductId(product.id);
-    if (reservation) {
+    try {
+      const reservation = getReservationByProductId(product.id);
+      
+      if (!reservation) {
+        toast.error("No reservation found for this product");
+        return;
+      }
+      
+      // Validate UUID format before attempting to cancel
+      if (typeof reservation.id !== 'string' || 
+          !reservation.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+        console.error("Invalid UUID format:", reservation.id);
+        toast.error("Invalid reservation ID format");
+        return;
+      }
+      
       cancelReservation(reservation.id);
+      toast.success("Reservation cancelled successfully");
+    } catch (error) {
+      console.error("Error cancelling reservation:", error);
+      toast.error("Failed to cancel reservation");
     }
   };
   
