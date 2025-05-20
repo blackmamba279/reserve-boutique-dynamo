@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CheckCircle, XCircle, Phone } from "lucide-react";
 import { Reservation } from "@/models/types";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/sonner";
 
 const ReservationsPage = () => {
   const { reservations, products, completeReservation, cancelReservation } = useApp();
@@ -33,14 +34,33 @@ const ReservationsPage = () => {
 
   const confirmCompleteReservation = () => {
     if (selectedReservation) {
-      completeReservation(selectedReservation.id);
+      try {
+        completeReservation(selectedReservation.id);
+        toast.success("Reservation completed successfully");
+      } catch (error) {
+        console.error("Error completing reservation:", error);
+        toast.error("Failed to complete reservation");
+      }
     }
     setIsCompleteDialogOpen(false);
   };
 
   const confirmCancelReservation = () => {
     if (selectedReservation) {
-      cancelReservation(selectedReservation.id);
+      try {
+        // Ensure we're passing a valid UUID string
+        if (typeof selectedReservation.id !== 'string' || !selectedReservation.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+          console.error("Invalid UUID format:", selectedReservation.id);
+          toast.error("Invalid reservation ID format");
+          return;
+        }
+        
+        cancelReservation(selectedReservation.id);
+        toast.success("Reservation cancelled successfully");
+      } catch (error) {
+        console.error("Error cancelling reservation:", error);
+        toast.error("Failed to cancel reservation");
+      }
     }
     setIsCancelDialogOpen(false);
   };
