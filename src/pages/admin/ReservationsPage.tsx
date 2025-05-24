@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import {
@@ -33,43 +32,17 @@ const ReservationsPage = () => {
   };
 
   const confirmCompleteReservation = () => {
-    if (selectedReservation) {
-      try {
-        // Validate UUID format before attempting to complete
-        if (typeof selectedReservation.id !== 'string' || 
-            !selectedReservation.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-          console.error("Invalid UUID format:", selectedReservation.id);
-          toast.error("Invalid reservation ID format");
-          return;
-        }
-        
-        completeReservation(selectedReservation.id);
-        toast.success("Reservation completed successfully");
-      } catch (error) {
-        console.error("Error completing reservation:", error);
-        toast.error("Failed to complete reservation");
-      }
+    if (selectedReservation?.id) {
+      console.log("Completing reservation with ID:", selectedReservation.id);
+      completeReservation(selectedReservation.id);
     }
     setIsCompleteDialogOpen(false);
   };
 
   const confirmCancelReservation = () => {
-    if (selectedReservation) {
-      try {
-        // Ensure we're passing a valid UUID string
-        if (typeof selectedReservation.id !== 'string' || 
-            !selectedReservation.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
-          console.error("Invalid UUID format:", selectedReservation.id);
-          toast.error("Invalid reservation ID format");
-          return;
-        }
-        
-        cancelReservation(selectedReservation.id);
-        toast.success("Reservation cancelled successfully");
-      } catch (error) {
-        console.error("Error cancelling reservation:", error);
-        toast.error("Failed to cancel reservation");
-      }
+    if (selectedReservation?.id) {
+      console.log("Cancelling reservation with ID:", selectedReservation.id);
+      cancelReservation(selectedReservation.id);
     }
     setIsCancelDialogOpen(false);
   };

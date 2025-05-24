@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 import { Product, Category, Reservation, Settings, CustomerReport, SalesReport } from "../models/types";
 import { products as initialProducts, categories as initialCategories, reservations as initialReservations, defaultSettings, salesReportData, customerReportData, generateReference } from "../data/initialData";
@@ -30,6 +29,7 @@ interface AppContextType {
   getCategoryById: (id: string) => Category | undefined;
   getReservationById: (id: string) => Reservation | undefined;
   getReservationByProductId: (productId: string) => Reservation | undefined;
+  refreshData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -45,22 +45,31 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const { user, session } = useAuth();
   
+  // Function to refresh all data
+  const refreshData = async () => {
+    console.log("Refreshing data from database...");
+    try {
+      await Promise.all([
+        fetchProductsFromSupabase(),
+        fetchCategoriesFromSupabase(),
+        fetchReservationsFromSupabase(),
+        fetchSettingsFromSupabase()
+      ]);
+      console.log("Data refreshed successfully");
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+    }
+  };
+
   // Initial data load from Supabase when component mounts
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        await Promise.all([
-          fetchProductsFromSupabase(),
-          fetchCategoriesFromSupabase(),
-          fetchReservationsFromSupabase(),
-          fetchSettingsFromSupabase()
-        ]);
-        console.log("Data loaded from Supabase successfully");
+        await refreshData();
       } catch (error) {
         console.error("Error loading data from Supabase:", error);
         toast.error("Failed to load data from server, using local data");
-        // Fall back to localStorage if Supabase fails
         loadDataFromLocalStorage();
       } finally {
         setLoading(false);
@@ -68,7 +77,55 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
     
     loadData();
-  }, [user]); // Re-fetch when user authentication changes
+  }, [user]);
+
+  // Set up real-time subscriptions for database changes
+  useEffect(() => {
+    console.log("Setting up real-time subscriptions...");
+    
+    const productsChannel = supabase
+      .channel('products-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'products'
+      }, (payload) => {
+        console.log('Products table changed:', payload);
+        fetchProductsFromSupabase();
+      })
+      .subscribe();
+
+    const reservationsChannel = supabase
+      .channel('reservations-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'reservations'
+      }, (payload) => {
+        console.log('Reservations table changed:', payload);
+        fetchReservationsFromSupabase();
+      })
+      .subscribe();
+
+    const categoriesChannel = supabase
+      .channel('categories-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'categories'
+      }, (payload) => {
+        console.log('Categories table changed:', payload);
+        fetchCategoriesFromSupabase();
+      })
+      .subscribe();
+
+    return () => {
+      console.log("Cleaning up real-time subscriptions...");
+      supabase.removeChannel(productsChannel);
+      supabase.removeChannel(reservationsChannel);
+      supabase.removeChannel(categoriesChannel);
+    };
+  }, []);
   
   const loadDataFromLocalStorage = () => {
     // Load from local storage as fallback
@@ -199,7 +256,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       setSettings(mappedSettings);
     } else {
       console.log("No settings found in Supabase, using default settings");
-      // Add default settings to Supabase if none exist
       if (user) {
         const { error } = await supabase
           .from('settings')
@@ -396,7 +452,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', categoryId);
       
       if (error) {
-        console.error("Error updating category in Supabase:", error);
+        console.error("Error updating category in Supababase:", error);
         toast.error("Failed to update category in database");
         throw error;
       }
@@ -519,15 +575,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const completeReservation = async (reservationId: string) => {
+    console.log("Starting completeReservation for ID:", reservationId);
     const reservation = reservations.find(r => r.id === reservationId);
     
     if (!reservation) {
+      console.error("Reservation not found:", reservationId);
       toast.error("Reservation not found");
       return;
     }
     
     try {
-      // Update reservation status in Supabase
       const { error: reservationError } = await supabase
         .from('reservations')
         .update({ status: 'completed' })
@@ -539,7 +596,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw reservationError;
       }
       
-      // Update product status in Supabase
       const { error: productError } = await supabase
         .from('products')
         .update({ status: 'sold' })
@@ -551,14 +607,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw productError;
       }
       
-      // Update local state for reservations
       setReservations(current =>
         current.map(r => 
           r.id === reservationId ? { ...r, status: 'completed' as const } : r
         )
       );
       
-      // Update product status to sold in local state
       setProducts(current =>
         current.map(p => 
           p.id === reservation.productId ? { ...p, status: 'sold' as const } : p
@@ -573,15 +627,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const cancelReservation = async (reservationId: string) => {
+    console.log("Starting cancelReservation for ID:", reservationId);
     const reservation = reservations.find(r => r.id === reservationId);
     
     if (!reservation) {
+      console.error("Reservation not found:", reservationId);
       toast.error("Reservation not found");
       return;
     }
     
     try {
-      // Update reservation status in Supabase
       const { error: reservationError } = await supabase
         .from('reservations')
         .update({ status: 'cancelled' })
@@ -593,7 +648,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw reservationError;
       }
       
-      // Update product status in Supabase
       const { error: productError } = await supabase
         .from('products')
         .update({ status: 'available' })
@@ -605,14 +659,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw productError;
       }
       
-      // Update local state for reservations
       setReservations(current =>
         current.map(r => 
           r.id === reservationId ? { ...r, status: 'cancelled' as const } : r
         )
       );
       
-      // Update product status back to available in local state
       setProducts(current =>
         current.map(p => 
           p.id === reservation.productId ? { ...p, status: 'available' as const } : p
@@ -730,7 +782,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         getProductById,
         getCategoryById,
         getReservationById,
-        getReservationByProductId
+        getReservationByProductId,
+        refreshData
       }}
     >
       {children}
