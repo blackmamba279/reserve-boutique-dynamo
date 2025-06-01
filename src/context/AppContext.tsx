@@ -36,14 +36,15 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [products, setProducts] = useState<Product[]>(initialProducts);
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
-  const [reservations, setReservations] = useState<Reservation[]>(initialReservations);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [salesReport] = useState<SalesReport>(salesReportData);
   const [customerReport] = useState<CustomerReport>(customerReportData);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+  const [dataInitialized, setDataInitialized] = useState<boolean>(false);
   const { user, session } = useAuth();
   
   // Check for data migration on component mount
@@ -53,6 +54,79 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       console.log("Data migration completed - using fresh data");
     }
   }, []);
+  
+  // Function to initialize production data in database
+  const initializeProductionData = async () => {
+    console.log("Initializing production data...");
+    
+    try {
+      // Check if categories exist in database
+      const { data: existingCategories, error: categoriesError } = await supabase
+        .from('categories')
+        .select('*');
+      
+      if (categoriesError) {
+        console.error("Error checking categories:", categoriesError);
+        return;
+      }
+      
+      // If no categories exist, initialize with default categories
+      if (!existingCategories || existingCategories.length === 0) {
+        console.log("No categories found, initializing default categories...");
+        
+        for (const category of initialCategories) {
+          const { error } = await supabase
+            .from('categories')
+            .insert({
+              id: category.id,
+              name: category.name,
+              code: category.code
+            });
+          
+          if (error) {
+            console.error("Error inserting category:", error);
+          } else {
+            console.log(`Initialized category: ${category.name}`);
+          }
+        }
+      }
+      
+      // Initialize default settings if none exist
+      const { data: existingSettings, error: settingsError } = await supabase
+        .from('settings')
+        .select('*');
+      
+      if (settingsError && settingsError.code !== 'PGRST116') {
+        console.error("Error checking settings:", settingsError);
+        return;
+      }
+      
+      if (!existingSettings || existingSettings.length === 0) {
+        console.log("No settings found, initializing default settings...");
+        
+        const { error } = await supabase
+          .from('settings')
+          .insert({
+            store_name: defaultSettings.storeName,
+            logo_url: defaultSettings.logoUrl,
+            slogan: defaultSettings.slogan,
+            whatsapp_number: defaultSettings.whatsappNumber,
+            exchange_rate: defaultSettings.exchangeRate
+          });
+        
+        if (error) {
+          console.error("Error inserting settings:", error);
+        } else {
+          console.log("Initialized default settings");
+        }
+      }
+      
+      setDataInitialized(true);
+      console.log("Production data initialization completed");
+    } catch (error) {
+      console.error("Error initializing production data:", error);
+    }
+  };
   
   // Function to refresh all data
   const refreshData = async () => {
@@ -75,21 +149,35 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const loadData = async () => {
       setLoading(true);
       try {
+        // Initialize production data first if needed
+        if (user && !dataInitialized) {
+          await initializeProductionData();
+        }
+        
         await refreshData();
       } catch (error) {
         console.error("Error loading data from Supabase:", error);
-        toast.error("Failed to load data from server, using local data");
-        loadDataFromLocalStorage();
+        toast.error("Failed to load data from server");
+        // In production, we don't fall back to local storage demo data
+        setCategories(initialCategories);
       } finally {
         setLoading(false);
       }
     };
     
-    loadData();
-  }, [user]);
+    if (user) {
+      loadData();
+    } else {
+      // If no user, just load initial categories for display
+      setCategories(initialCategories);
+      setLoading(false);
+    }
+  }, [user, dataInitialized]);
 
   // Set up real-time subscriptions for database changes
   useEffect(() => {
+    if (!user) return;
+    
     console.log("Setting up real-time subscriptions...");
     
     const productsChannel = supabase
@@ -134,30 +222,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       supabase.removeChannel(reservationsChannel);
       supabase.removeChannel(categoriesChannel);
     };
-  }, []);
-  
-  const loadDataFromLocalStorage = () => {
-    // Load from local storage as fallback
-    const storedProducts = localStorage.getItem("products");
-    if (storedProducts) {
-      setProducts(JSON.parse(storedProducts));
-    }
-
-    const storedCategories = localStorage.getItem("categories");
-    if (storedCategories) {
-      setCategories(JSON.parse(storedCategories));
-    }
-
-    const storedReservations = localStorage.getItem("reservations");
-    if (storedReservations) {
-      setReservations(JSON.parse(storedReservations));
-    }
-
-    const storedSettings = localStorage.getItem("settings");
-    if (storedSettings) {
-      setSettings(JSON.parse(storedSettings));
-    }
-  };
+  }, [user]);
   
   // Fetch functions from Supabase
   const fetchProductsFromSupabase = async () => {
@@ -170,7 +235,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       throw error;
     }
     
-    if (data && data.length > 0) {
+    if (data) {
       const mappedProducts: Product[] = data.map(item => ({
         id: item.id,
         reference: item.reference,
@@ -185,8 +250,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       
       console.log(`Fetched ${mappedProducts.length} products from Supabase`);
       setProducts(mappedProducts);
-    } else {
-      console.log("No products found in Supabase, using initial data");
     }
   };
   
@@ -200,7 +263,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       throw error;
     }
     
-    if (data && data.length > 0) {
+    if (data) {
       const mappedCategories: Category[] = data.map(item => ({
         id: item.id,
         name: item.name,
@@ -209,8 +272,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       
       console.log(`Fetched ${mappedCategories.length} categories from Supabase`);
       setCategories(mappedCategories);
-    } else {
-      console.log("No categories found in Supabase, using initial data");
     }
   };
   
@@ -224,7 +285,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       throw error;
     }
     
-    if (data && data.length > 0) {
+    if (data) {
       const mappedReservations: Reservation[] = data.map(item => ({
         id: item.id,
         productId: item.product_id,
@@ -236,8 +297,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       
       console.log(`Fetched ${mappedReservations.length} reservations from Supabase`);
       setReservations(mappedReservations);
-    } else {
-      console.log("No reservations found in Supabase, using initial data");
     }
   };
   
@@ -263,44 +322,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       
       console.log("Fetched settings from Supabase");
       setSettings(mappedSettings);
-    } else {
-      console.log("No settings found in Supabase, using default settings");
-      if (user) {
-        const { error } = await supabase
-          .from('settings')
-          .insert({
-            store_name: defaultSettings.storeName,
-            logo_url: defaultSettings.logoUrl,
-            slogan: defaultSettings.slogan,
-            whatsapp_number: defaultSettings.whatsappNumber,
-            exchange_rate: defaultSettings.exchangeRate
-          });
-        
-        if (error) {
-          console.error("Error creating default settings:", error);
-        } else {
-          console.log("Created default settings in Supabase");
-        }
-      }
     }
   };
 
-  // Save to local storage when data changes (as fallback)
-  useEffect(() => {
-    localStorage.setItem("products", JSON.stringify(products));
-  }, [products]);
-
-  useEffect(() => {
-    localStorage.setItem("categories", JSON.stringify(categories));
-  }, [categories]);
-
-  useEffect(() => {
-    localStorage.setItem("reservations", JSON.stringify(reservations));
-  }, [reservations]);
-
-  useEffect(() => {
-    localStorage.setItem("settings", JSON.stringify(settings));
-  }, [settings]);
+  // Remove local storage dependencies for production
+  // All data now comes from Supabase database
 
   // Product operations
   const addProduct = async (product: Omit<Product, "id" | "reference" | "createdAt">) => {
@@ -319,7 +345,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
     
     try {
-      // Store in Supabase - map to the database schema
       const { data, error } = await supabase
         .from('products')
         .insert({
@@ -341,7 +366,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       
-      // Update local state
       setProducts(current => [...current, newProduct]);
       toast.success("Product added successfully");
     } catch (error) {
@@ -367,7 +391,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (data.categoryId) dbData.category_id = data.categoryId;
       if (data.status) dbData.status = data.status;
       
-      // Update in Supabase
       const { error } = await supabase
         .from('products')
         .update(dbData)
@@ -379,7 +402,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       
-      // Update local state
       setProducts(current =>
         current.map(product => 
           product.id === productId ? { ...product, ...data } : product
@@ -419,7 +441,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       
-      // Update local state
       setProducts(current => current.filter(p => p.id !== productId));
       toast.success("Product deleted successfully");
     } catch (error) {
@@ -436,7 +457,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
     
     try {
-      // Store in Supabase
       const { error } = await supabase
         .from('categories')
         .insert({
@@ -451,7 +471,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       
-      // Update local state
       setCategories(current => [...current, newCategory]);
       toast.success("Category added successfully");
     } catch (error) {
@@ -481,7 +500,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       
-      // Update local state
       setCategories(current =>
         current.map(category => 
           category.id === categoryId ? { ...category, ...data } : category
@@ -519,7 +537,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
       
-      // Update local state
       setCategories(current => current.filter(c => c.id !== categoryId));
       toast.success("Category deleted successfully");
     } catch (error) {

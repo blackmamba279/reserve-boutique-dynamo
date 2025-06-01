@@ -62,8 +62,8 @@ const SettingsPage = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold mb-2">Settings</h1>
-        <p className="text-gray-500">Configure your store settings</p>
+        <h1 className="text-3xl font-bold mb-2">Store Settings</h1>
+        <p className="text-gray-500">Configure your store settings for production</p>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -71,7 +71,7 @@ const SettingsPage = () => {
           <CardHeader>
             <CardTitle>Store Information</CardTitle>
             <CardDescription>
-              Update your store details
+              Update your store details that will appear to customers
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -81,17 +81,17 @@ const SettingsPage = () => {
                 id="storeName"
                 value={storeName}
                 onChange={(e) => setStoreName(e.target.value)}
-                placeholder="Enter store name"
+                placeholder="Enter your store name"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="slogan">Slogan</Label>
+              <Label htmlFor="slogan">Store Slogan</Label>
               <Input
                 id="slogan"
                 value={slogan}
                 onChange={(e) => setSlogan(e.target.value)}
-                placeholder="Enter store slogan"
+                placeholder="Enter your store slogan"
               />
             </div>
           </CardContent>
@@ -101,7 +101,7 @@ const SettingsPage = () => {
           <CardHeader>
             <CardTitle>Store Logo</CardTitle>
             <CardDescription>
-              Upload your store logo
+              Upload your store logo (optional)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -129,7 +129,7 @@ const SettingsPage = () => {
         
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Business Settings</CardTitle>
+            <CardTitle>Business Configuration</CardTitle>
             <CardDescription>
               Configure business operational settings
             </CardDescription>
@@ -137,17 +137,20 @@ const SettingsPage = () => {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                <Label htmlFor="whatsappNumber">WhatsApp Business Number</Label>
                 <Input
                   id="whatsappNumber"
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
-                  placeholder="e.g. +50587010851"
+                  placeholder="e.g. +1234567890"
                 />
+                <p className="text-sm text-gray-500">
+                  Include country code. This will be used for customer communication.
+                </p>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="exchangeRate">Exchange Rate (C$ to USD)</Label>
+                <Label htmlFor="exchangeRate">Exchange Rate (Local Currency to USD)</Label>
                 <Input
                   id="exchangeRate"
                   type="number"
@@ -157,6 +160,9 @@ const SettingsPage = () => {
                   min="0"
                   step="0.01"
                 />
+                <p className="text-sm text-gray-500">
+                  Set to 1.0 if you're using USD as your primary currency.
+                </p>
               </div>
             </div>
           </CardContent>
