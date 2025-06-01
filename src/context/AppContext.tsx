@@ -4,6 +4,7 @@ import { products as initialProducts, categories as initialCategories, reservati
 import { toast } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "./AuthContext";
+import { isValidUUID, validateEntityId, logDataOperation, migrateDataToUUIDs } from "@/utils/dataUtils";
 
 interface AppContextType {
   products: Product[];
@@ -44,6 +45,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const { user, session } = useAuth();
+  
+  // Check for data migration on component mount
+  useEffect(() => {
+    const migrated = migrateDataToUUIDs();
+    if (migrated) {
+      console.log("Data migration completed - using fresh data");
+    }
+  }, []);
   
   // Function to refresh all data
   const refreshData = async () => {
@@ -342,8 +351,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateProduct = async (productId: string, data: Partial<Product>) => {
+    if (!validateEntityId(productId, "product")) {
+      toast.error("Invalid product ID format");
+      return;
+    }
+
     try {
-      // Map the data to match database schema
+      logDataOperation("Updating", "product", productId);
+      
       const dbData: any = {};
       if (data.name) dbData.name = data.name;
       if (data.price !== undefined) dbData.price = data.price;
@@ -378,7 +393,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteProduct = async (productId: string) => {
-    // Check if product has reservations
+    if (!validateEntityId(productId, "product")) {
+      toast.error("Invalid product ID format");
+      return;
+    }
+
     const hasReservation = reservations.some(r => r.productId === productId && r.status === 'pending');
     
     if (hasReservation) {
@@ -387,7 +406,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-      // Delete from Supabase
+      logDataOperation("Deleting", "product", productId);
+      
       const { error } = await supabase
         .from('products')
         .delete()
@@ -441,8 +461,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const updateCategory = async (categoryId: string, data: Partial<Category>) => {
+    if (!validateEntityId(categoryId, "category")) {
+      toast.error("Invalid category ID format");
+      return;
+    }
+
     try {
-      // Update in Supabase
       const { error } = await supabase
         .from('categories')
         .update({
@@ -452,7 +476,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         .eq('id', categoryId);
       
       if (error) {
-        console.error("Error updating category in Supababase:", error);
+        console.error("Error updating category in Supabase:", error);
         toast.error("Failed to update category in database");
         throw error;
       }
@@ -471,7 +495,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const deleteCategory = async (categoryId: string) => {
-    // Check if any products use this category
+    if (!validateEntityId(categoryId, "category")) {
+      toast.error("Invalid category ID format");
+      return;
+    }
+
     const hasProducts = products.some(p => p.categoryId === categoryId);
     
     if (hasProducts) {
@@ -480,7 +508,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     }
     
     try {
-      // Delete from Supabase
       const { error } = await supabase
         .from('categories')
         .delete()
@@ -503,7 +530,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   // Reservation operations
   const reserveProduct = async (productId: string, customerName: string, customerPhone: string) => {
-    // Check if product exists and is available
+    if (!validateEntityId(productId, "product")) {
+      toast.error("Invalid product ID format");
+      return;
+    }
+
     const product = products.find(p => p.id === productId);
     
     if (!product) {
@@ -516,7 +547,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     
-    // Create reservation
     const newReservation: Reservation = {
       id: crypto.randomUUID(),
       productId,
@@ -527,7 +557,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     };
     
     try {
-      // Store reservation in Supabase
+      logDataOperation("Creating", "reservation", newReservation.id);
+      
       const { error: reservationError } = await supabase
         .from('reservations')
         .insert({
@@ -545,7 +576,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw reservationError;
       }
       
-      // Update product status in Supabase
       const { error: productError } = await supabase
         .from('products')
         .update({ status: 'reserved' })
@@ -557,10 +587,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         throw productError;
       }
       
-      // Update local state for reservations
       setReservations(current => [...current, newReservation]);
-      
-      // Update product status in local state
       setProducts(current =>
         current.map(p => 
           p.id === productId ? { ...p, status: 'reserved' as const } : p
@@ -575,7 +602,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const completeReservation = async (reservationId: string) => {
-    console.log("Starting completeReservation for ID:", reservationId);
+    if (!validateEntityId(reservationId, "reservation")) {
+      toast.error("Invalid reservation ID format");
+      return;
+    }
+
+    logDataOperation("Completing", "reservation", reservationId);
     const reservation = reservations.find(r => r.id === reservationId);
     
     if (!reservation) {
@@ -627,7 +659,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const cancelReservation = async (reservationId: string) => {
-    console.log("Starting cancelReservation for ID:", reservationId);
+    if (!validateEntityId(reservationId, "reservation")) {
+      toast.error("Invalid reservation ID format");
+      return;
+    }
+
+    logDataOperation("Cancelling", "reservation", reservationId);
     const reservation = reservations.find(r => r.id === reservationId);
     
     if (!reservation) {
@@ -683,7 +720,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const updatedSettings = { ...settings, ...data };
     
     try {
-      // Prepare data for Supabase (convert to snake_case)
       const settingsData = {
         store_name: updatedSettings.storeName,
         logo_url: updatedSettings.logoUrl,
@@ -692,7 +728,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         exchange_rate: updatedSettings.exchangeRate
       };
       
-      // Check if settings exist in Supabase
       const { data: existingSettings, error: fetchError } = await supabase
         .from('settings')
         .select('id');
@@ -703,7 +738,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       }
       
       if (existingSettings && existingSettings.length > 0) {
-        // Update existing settings
         const { error } = await supabase
           .from('settings')
           .update(settingsData)
@@ -715,7 +749,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
           throw error;
         }
       } else {
-        // Insert new settings
         const { error } = await supabase
           .from('settings')
           .insert(settingsData);
@@ -727,7 +760,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       
-      // Update local state
       setSettings(updatedSettings);
       toast.success("Settings updated successfully");
     } catch (error) {

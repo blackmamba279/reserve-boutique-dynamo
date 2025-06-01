@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import {
@@ -13,7 +14,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CheckCircle, XCircle, Phone } from "lucide-react";
 import { Reservation } from "@/models/types";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/components/ui/sonner";
 
 const ReservationsPage = () => {
   const { reservations, products, completeReservation, cancelReservation } = useApp();
@@ -22,29 +22,33 @@ const ReservationsPage = () => {
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
 
   const handleCompleteReservation = (reservation: Reservation) => {
+    console.log("Selected reservation for completion:", reservation);
     setSelectedReservation(reservation);
     setIsCompleteDialogOpen(true);
   };
 
   const handleCancelReservation = (reservation: Reservation) => {
+    console.log("Selected reservation for cancellation:", reservation);
     setSelectedReservation(reservation);
     setIsCancelDialogOpen(true);
   };
 
   const confirmCompleteReservation = () => {
     if (selectedReservation?.id) {
-      console.log("Completing reservation with ID:", selectedReservation.id);
+      console.log("Confirming completion for reservation ID:", selectedReservation.id);
       completeReservation(selectedReservation.id);
     }
     setIsCompleteDialogOpen(false);
+    setSelectedReservation(null);
   };
 
   const confirmCancelReservation = () => {
     if (selectedReservation?.id) {
-      console.log("Cancelling reservation with ID:", selectedReservation.id);
+      console.log("Confirming cancellation for reservation ID:", selectedReservation.id);
       cancelReservation(selectedReservation.id);
     }
     setIsCancelDialogOpen(false);
+    setSelectedReservation(null);
   };
 
   const openWhatsApp = (phone: string) => {

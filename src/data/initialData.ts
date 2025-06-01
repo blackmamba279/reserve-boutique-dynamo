@@ -1,12 +1,11 @@
-
 import { Category, Product, Reservation, Settings, SalesReport, CustomerReport } from "../models/types";
 
-// Mock categories
+// Mock categories with proper UUIDs
 export const categories: Category[] = [
-  { id: "1", name: "Dresses", code: "DRS" },
-  { id: "2", name: "Tops", code: "TOP" },
-  { id: "3", name: "Bottoms", code: "BTM" },
-  { id: "4", name: "Accessories", code: "ACC" },
+  { id: "550e8400-e29b-41d4-a716-446655440001", name: "Dresses", code: "DRS" },
+  { id: "550e8400-e29b-41d4-a716-446655440002", name: "Tops", code: "TOP" },
+  { id: "550e8400-e29b-41d4-a716-446655440003", name: "Bottoms", code: "BTM" },
+  { id: "550e8400-e29b-41d4-a716-446655440004", name: "Accessories", code: "ACC" },
 ];
 
 // Function to generate reference code
@@ -16,10 +15,10 @@ export const generateReference = (categoryCode: string): string => {
   return `${categoryCode}${year}-${random}`;
 };
 
-// Mock products
+// Mock products with proper UUIDs
 export const products: Product[] = [
   {
-    id: "1",
+    id: "650e8400-e29b-41d4-a716-446655440001",
     reference: "DRS23-0001",
     name: "Elegant Evening Dress",
     price: 2500,
@@ -30,12 +29,12 @@ export const products: Product[] = [
       "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80",
       "https://images.unsplash.com/photo-1612336307429-8a898d10e223?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80"
     ],
-    categoryId: "1",
+    categoryId: "550e8400-e29b-41d4-a716-446655440001",
     status: "available",
     createdAt: new Date().toISOString()
   },
   {
-    id: "2",
+    id: "650e8400-e29b-41d4-a716-446655440002",
     reference: "TOP23-0002",
     name: "Summer Blouse",
     price: 850,
@@ -46,12 +45,12 @@ export const products: Product[] = [
       "https://images.unsplash.com/photo-1617019114583-affb34d1b3cd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80",
       "https://images.unsplash.com/photo-1553545204-4f7d339aa06a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80"
     ],
-    categoryId: "2",
+    categoryId: "550e8400-e29b-41d4-a716-446655440002",
     status: "available",
     createdAt: new Date().toISOString()
   },
   {
-    id: "3",
+    id: "650e8400-e29b-41d4-a716-446655440003",
     reference: "BTM23-0003",
     name: "Classic Jeans",
     price: 1200,
@@ -62,12 +61,12 @@ export const products: Product[] = [
       "https://images.unsplash.com/photo-1555689502-c4b22d76c56f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80",
       "https://images.unsplash.com/photo-1604176424472-e519b08cb117?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80"
     ],
-    categoryId: "3",
+    categoryId: "550e8400-e29b-41d4-a716-446655440003",
     status: "reserved",
     createdAt: new Date().toISOString()
   },
   {
-    id: "4",
+    id: "650e8400-e29b-41d4-a716-446655440004",
     reference: "ACC23-0004",
     name: "Statement Necklace",
     price: 650,
@@ -78,17 +77,17 @@ export const products: Product[] = [
       "https://images.unsplash.com/photo-1631982690223-8c4b46984123?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80",
       "https://images.unsplash.com/photo-1635767798638-3e25273a8236?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1000&q=80"
     ],
-    categoryId: "4",
+    categoryId: "550e8400-e29b-41d4-a716-446655440004",
     status: "sold",
     createdAt: new Date().toISOString()
   }
 ];
 
-// Mock reservations
+// Mock reservations with proper UUIDs
 export const reservations: Reservation[] = [
   {
-    id: "1",
-    productId: "3",
+    id: "750e8400-e29b-41d4-a716-446655440001",
+    productId: "650e8400-e29b-41d4-a716-446655440003",
     customerName: "Maria Gonzalez",
     customerPhone: "+50587654321",
     status: "pending",
@@ -134,8 +133,8 @@ export const customerReportData: CustomerReport = {
   newCustomers: 35,
   returningCustomers: 15,
   topProducts: [
-    { productId: "1", productName: "Elegant Evening Dress", count: 28 },
-    { productId: "2", productName: "Summer Blouse", count: 22 },
-    { productId: "3", productName: "Classic Jeans", count: 18 },
+    { productId: "650e8400-e29b-41d4-a716-446655440001", productName: "Elegant Evening Dress", count: 28 },
+    { productId: "650e8400-e29b-41d4-a716-446655440002", productName: "Summer Blouse", count: 22 },
+    { productId: "650e8400-e29b-41d4-a716-446655440003", productName: "Classic Jeans", count: 18 },
   ]
 };
