@@ -19,6 +19,12 @@ export type TranslationKeys = {
     addToCart: string;
     viewDetails: string;
     notAvailable: string;
+    reserveNow: string;
+    yourName: string;
+    yourPhone: string;
+    cancel: string;
+    confirm: string;
+    nameRequired: string;
   };
   catalog: {
     searchProducts: string;

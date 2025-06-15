@@ -72,7 +72,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
   };
   
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden border border-boutique-accent">
+    <div className="bg-card rounded-lg shadow-md overflow-hidden border border-border">
       <div className="relative">
         <Carousel className="w-full">
           <CarouselContent>
@@ -95,42 +95,42 @@ const ProductCard = ({ product }: ProductCardProps) => {
       </div>
       
       <div className="p-4">
-        <p className="text-sm text-gray-500 mb-1">{t('product.reference') || "Reference"}: {product.reference}</p>
-        <h3 className="text-xl font-serif font-semibold text-boutique-dark mb-2">
+        <p className="text-sm text-muted-foreground mb-1">{t('product.reference') || "Reference"}: {product.reference}</p>
+        <h3 className="text-xl font-serif font-semibold text-foreground mb-2">
           {product.name}
         </h3>
         
         <div className="flex items-center gap-2 mb-3">
-          <span className="font-bold text-boutique-primary text-lg">C$ {product.price.toLocaleString()}</span>
-          <span className="text-sm text-gray-500">($ {dollarPrice})</span>
+          <span className="font-bold text-primary text-lg">C$ {product.price.toLocaleString()}</span>
+          <span className="text-sm text-muted-foreground">($ {dollarPrice})</span>
         </div>
         
-        <p className="text-sm text-gray-600 mb-4">{product.description}</p>
+        <p className="text-sm text-muted-foreground mb-4">{product.description}</p>
         
         {product.status === "available" ? (
           !showReservationForm ? (
             <Button 
               onClick={handleReserveClick}
-              className="w-full bg-boutique-primary hover:bg-boutique-dark"
+              className="w-full"
             >
-              {t('product.reserveNow') || "Reserve Now"}
+              {t('product.reserveNow') || "Reservar Ahora"}
             </Button>
           ) : (
             <div className="space-y-3 animate-fade-in">
-              <input
-                type="text"
-                placeholder={t('product.yourName') || "Your name"}
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full p-2 border rounded-md"
-              />
-              <input
-                type="text"
-                placeholder={t('product.yourPhone') || "Your phone"}
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                className="w-full p-2 border rounded-md"
-              />
+                <input
+                  type="text"
+                  placeholder={t('product.yourName') || "Your name"}
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full p-2 border border-border rounded-md bg-background text-foreground"
+                />
+                <input
+                  type="text"
+                  placeholder={t('product.yourPhone') || "Your phone"}
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="w-full p-2 border border-border rounded-md bg-background text-foreground"
+                />
               <div className="flex gap-2">
                 <Button 
                   onClick={() => setShowReservationForm(false)}
@@ -141,7 +141,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
                 </Button>
                 <Button 
                   onClick={handleSubmitReservation}
-                  className="flex-1 bg-boutique-primary hover:bg-boutique-dark"
+                  className="flex-1"
                 >
                   {t('product.confirm') || "Confirm"}
                 </Button>
@@ -149,7 +149,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
             </div>
           )
         ) : (
-          <Button disabled className="w-full bg-gray-300 cursor-not-allowed">
+          <Button disabled className="w-full bg-muted text-muted-foreground cursor-not-allowed">
             {product.status === "reserved" ? (t('product.reserved') || "Reserved") : (t('product.sold') || "Sold")}
           </Button>
         )}
